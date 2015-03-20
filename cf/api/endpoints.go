@@ -25,10 +25,12 @@ type endpointResource struct {
 	LoggregatorEndpoint   string `json:"logging_endpoint"`
 }
 
-func NewEndpointRepository(config core_config.ReadWriter, gateway net.Gateway) (repo RemoteEndpointRepository) {
-	repo.config = config
-	repo.gateway = gateway
-	return
+func NewEndpointRepository(config core_config.ReadWriter, gateway net.Gateway) EndpointRepository {
+	r := &RemoteEndpointRepository{
+		config:  config,
+		gateway: gateway,
+	}
+	return r
 }
 
 func (repo RemoteEndpointRepository) UpdateEndpoint(endpoint string) (finalEndpoint string, apiErr error) {

@@ -12,6 +12,7 @@ import (
 	"github.com/cloudfoundry/cli/cf/app"
 	"github.com/cloudfoundry/cli/cf/command_factory"
 	"github.com/cloudfoundry/cli/cf/command_metadata"
+	"github.com/cloudfoundry/cli/cf/command_registry"
 	"github.com/cloudfoundry/cli/cf/command_runner"
 	"github.com/cloudfoundry/cli/cf/configuration/config_helpers"
 	"github.com/cloudfoundry/cli/cf/configuration/core_config"
@@ -24,11 +25,14 @@ import (
 	"github.com/cloudfoundry/cli/cf/requirements"
 	"github.com/cloudfoundry/cli/cf/terminal"
 	"github.com/cloudfoundry/cli/cf/trace"
+	"github.com/cloudfoundry/cli/flags"
 	"github.com/cloudfoundry/cli/plugin/rpc"
 	"github.com/codegangsta/cli"
 )
 
 var deps = setupDependencies()
+
+var cmdRegistry = command_registry.Commands
 
 type cliDependencies struct {
 	termUI         terminal.UI
@@ -59,7 +63,7 @@ func setupDependencies() (deps *cliDependencies) {
 	deps.pluginConfig = plugin_config.NewPluginConfig(errorHandler)
 	deps.detector = &detection.JibberJabberDetector{}
 
-	T = Init(deps.configRepo, deps.detector)
+	// T = Init(deps.configRepo, deps.detector)
 
 	terminal.UserAskedForColors = deps.configRepo.ColorEnabled()
 	terminal.InitColorSupport()
@@ -84,6 +88,32 @@ func main() {
 	defer handlePanics(deps.teePrinter)
 	defer deps.configRepo.Close()
 
+	///////////////////////////////////////
+	//parse find out what command is being run
+
+	if len(os.Args) > 1 {
+		if cmdRegistry.CommandExists(os.Args[1]) {
+			fc := flags.NewFlagContext(cmdRegistry.FindCommand(os.Args[1]).MetaData().Flags)
+			err := fc.Parse(os.Args[2:]...)
+			if err != nil {
+				fmt.Println("ERROR:", err)
+				os.Exit(1)
+			}
+
+			newDeps := command_registry.Dependency{
+				Ui:          deps.termUI,
+				Config:      deps.configRepo,
+				RepoLocator: deps.apiRepoLocator,
+				Detector:    deps.detector,
+			}
+
+			cmdRegistry.SetCommand(cmdRegistry.FindCommand("api").SetDependency(newDeps))
+
+			cmdRegistry.FindCommand("api").Execute(fc)
+			os.Exit(0)
+		}
+	}
+	//////////////////////////////////////////
 	rpcService := newCliRpcServer(deps.teePrinter, deps.teePrinter)
 
 	cmdFactory := command_factory.NewFactory(deps.termUI, deps.configRepo, deps.manifestRepo, deps.apiRepoLocator, deps.pluginConfig, rpcService)
