@@ -158,7 +158,7 @@ var _ = Describe("Zipper", func() {
 
 			fileSize, err := zipper.GetZipSize(file)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(fileSize).To(Equal(int64(1803)))
+			Expect(fileSize).To(Equal(int64(1842)))
 		})
 
 		It("returns  an error if the zip file cannot be found", func() {
