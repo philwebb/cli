@@ -55,10 +55,10 @@
   CF_HOME=$(pwd)/fixtures ginkgo -r $@
 
   echo -e "\n Vetting packages for potential issues..."
-  go tool vet cf/.
+  go vet cf/.
   for file in $(find {cf,fileutils,generic,glob,main,testhelpers,words} \( -name "*.go" -not -iname "*test.go" \))
   do
-    go tool vet -all -shadow=true $file
+    go vet -all -shadow=true $file
   done
 
   echo -e "\n Running build script to confirm everything compiles..."
